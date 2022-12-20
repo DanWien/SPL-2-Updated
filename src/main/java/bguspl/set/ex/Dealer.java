@@ -148,7 +148,6 @@ public class Dealer implements Runnable {
 
     private void shuffleTable() {
         table.shouldWait = true;
-//        synchronized (table) {
             Random cardRandom = new Random();
             List<Integer> slots = new ArrayList<>();
             for (int i = 0; i < env.config.tableSize; i++)
@@ -158,7 +157,6 @@ public class Dealer implements Runnable {
                 int cardIdx = cardRandom.nextInt(deck.size());
                 table.placeCard(deck.remove(cardIdx), slots.get(i));
             }
-//        }
         table.shouldWait = false;
     }
 
@@ -200,7 +198,7 @@ public class Dealer implements Runnable {
     private void sleepUntilWokenOrTimeout() {
         synchronized (dealerLock) {
             try {
-                dealerLock.wait(50);
+                dealerLock.wait(75);
             } catch (InterruptedException e) {
             }
         }
@@ -226,7 +224,6 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         table.shouldWait = true;
-//        synchronized (table) {
             env.ui.removeTokens();
             for (int i = 0; i < players.length; i++) {
                 players[i].removeTokens();
@@ -238,7 +235,6 @@ public class Dealer implements Runnable {
                     deck.add(card);
                 }
             }
-//        }
     }
 
     /**
