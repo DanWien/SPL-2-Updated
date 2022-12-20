@@ -60,13 +60,13 @@ public class Player implements Runnable {
     /**
      * Number of tokens the player has placed so far.
      */
-    private int numOfTokens = 0;
+    public int numOfTokens = 0;
     /**
      * This queue holds the player's key presses by order of FIFO.
      */
     private Queue<Integer> keyQueue;
-    private int penalty = 0;
-    private boolean waitNow = false; // idea to make them sleep while cards are dealt.
+    private volatile int penalty = 0;
+    private final int SETSIZE = 3;
 
     private Object playerLock = new Object();
 
@@ -86,10 +86,10 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
-        tokens = new int[3];
-        for (int i = 0; i < 3; i++)
+        tokens = new int[SETSIZE];
+        for (int i = 0; i < tokens.length; i++)
             tokens[i] = -1;
-        keyQueue = new ArrayBlockingQueue<>(3);
+        keyQueue = new ArrayBlockingQueue<>(SETSIZE);
         this.dealer = dealer;
     }
 
@@ -106,22 +106,22 @@ public class Player implements Runnable {
             if (penalty == 1) {
                 point();
                 penalty = 0;
-            } else if (penalty == 3) {
+            } else if (penalty == 2) {
                 penalty();
                 penalty = 0;
             }
-            if (!keyQueue.isEmpty() & numOfTokens <= 3) {
+            if (!keyQueue.isEmpty() & numOfTokens <= SETSIZE) {
                 int currSlot = keyQueue.poll();
                 boolean exists = false;
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < tokens.length; i++) {
                     if (tokens[i] == currSlot)
                         exists = true;
                 }
                 if (exists)
                     removeToken(currSlot);
-                else if (numOfTokens < 3) {
+                else if (numOfTokens < SETSIZE) {
                     placeToken(currSlot);
-                    if (numOfTokens == 3) {
+                    if (numOfTokens == SETSIZE) {
                         synchronized (table.setQueue) {
                             table.setQueue.add(id);
                         }
@@ -176,8 +176,8 @@ public class Player implements Runnable {
      * @param slot - the slot corresponding to the key pressed.
      */
     public void keyPressed(int slot) {
-        if(!table.shouldWait) {
-            if (table.slotToCard[slot] != null && keyQueue.size() < 3)
+        if (!table.shouldWait) {
+            if (table.slotToCard[slot] != null && keyQueue.size() < SETSIZE)
                 keyQueue.add(slot);
         }
     }
@@ -192,12 +192,15 @@ public class Player implements Runnable {
         score++;
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, score);
+        int seconds = (int) (env.config.pointFreezeMillis / 1000);
         try {
-            env.ui.setFreeze(id, env.config.pointFreezeMillis);
-            playerThread.sleep(env.config.pointFreezeMillis);
-            env.ui.setFreeze(id, 0);
+            for (int i = seconds; i > 0; i--) {
+                env.ui.setFreeze(id, i * 1000);
+                playerThread.sleep(1000);
+            }
         } catch (InterruptedException e) {
         }
+        env.ui.setFreeze(id, 0);
         keyQueue.clear();
     }
 
@@ -222,16 +225,18 @@ public class Player implements Runnable {
     }
 
     public void removeTokens() {
-        for (int i = 0; i < 3; i++) {
-            table.removeToken(id, i);
-            tokens[i] = -1;
+        for (int i = 0; i < tokens.length; i++) {
+            if(tokens[i]!=-1) {
+                table.removeToken(id, i);
+                tokens[i] = -1;
+            }
         }
         numOfTokens = 0;
     }
 
     public void removeToken(int slot) {
         synchronized (table) {
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < tokens.length; i++) {
                 if (tokens[i] == slot)
                     tokens[i] = -1;
             }
@@ -260,7 +265,7 @@ public class Player implements Runnable {
     }
 
     public int[] getTokens() {
-        int[] copy = new int[3];
+        int[] copy = new int[tokens.length];
         for (int i = 0; i < copy.length; i++)
             copy[i] = tokens[i];
         return copy;

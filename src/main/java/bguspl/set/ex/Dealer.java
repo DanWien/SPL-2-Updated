@@ -45,7 +45,6 @@ public class Dealer implements Runnable {
     private Thread[] plThreads;
 
     private boolean needNewCards = true;
-    private Thread dealerThread;
     private Object dealerLock = new Object();
 
     public Dealer(Env env, Table table, Player[] players) {
@@ -95,15 +94,13 @@ public class Dealer implements Runnable {
      * Called when the game should be terminated.
      */
     public void terminate() {
-        int i = 0;
-        for (Player p : players) {
-            p.release();
-            p.terminate();
+        for (int i = players.length ; i>0 ; i--) {
+            players[i-1].release();
+            players[i-1].terminate();
             try {
-                plThreads[i].join();
+                plThreads[i-1].join();
             } catch (InterruptedException e) {
             }
-            i++;
         }
         terminate = true;
     }
@@ -128,6 +125,7 @@ public class Dealer implements Runnable {
                 int[] setToCheck = {table.slotToCard[playerSlots[0]], table.slotToCard[playerSlots[1]], table.slotToCard[playerSlots[2]]};
                 boolean isLegalSet = env.util.testSet(setToCheck);
                 if (isLegalSet) {
+                    table.shouldWait = true;
                     for (int i = 0; i < playerSlots.length; i++) {
                         for (int j = 0; j < env.config.players; j++) {
                             if (table.slotToPlayer[j][playerSlots[i]])
@@ -138,15 +136,16 @@ public class Dealer implements Runnable {
                     needNewCards = true;
                     updateTimerDisplay(true);
                     players[id].setPenalty(1);
+                    table.shouldWait = false;
                 } else {
-                    players[id].setPenalty(3);
+                    players[id].setPenalty(2);
                 }
             }
             players[id].release();
         }
     }
 
-    private void shuffleTable() {
+    public void shuffleTable() {
         table.shouldWait = true;
             Random cardRandom = new Random();
             List<Integer> slots = new ArrayList<>();
@@ -222,7 +221,7 @@ public class Dealer implements Runnable {
     /**
      * Returns all the cards from the table to the deck.
      */
-    private void removeAllCardsFromTable() {
+    public void removeAllCardsFromTable() {
         table.shouldWait = true;
             env.ui.removeTokens();
             for (int i = 0; i < players.length; i++) {

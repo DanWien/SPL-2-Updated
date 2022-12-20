@@ -18,6 +18,7 @@ class TableTest {
     Table table;
     private Integer[] slotToCard;
     private Integer[] cardToSlot;
+    //private boolean[][] slotToPlayer;
 
     @BeforeEach
     void setUp() {
@@ -37,6 +38,7 @@ class TableTest {
 
         Env env = new Env(logger, config, new MockUserInterface(), new MockUtil());
         table = new Table(env, slotToCard, cardToSlot);
+//        slotToPlayer = new boolean [2][config.tableSize];
     }
 
     private int fillSomeSlots() {
@@ -93,6 +95,29 @@ class TableTest {
     void placeCard_AllSlotsAreFilled() throws InterruptedException {
         fillAllSlots();
         placeSomeCardsAndAssert();
+    }
+    /**
+     * our methods and tests
+     */
+    private void removeSomeCardsAndAssert() throws InterruptedException {
+        table.removeCard(1);
+
+        assertEquals(null, slotToCard[1]);
+        assertEquals(null, cardToSlot[10]);
+    }
+    private void placeOneTokenAndAssert() throws InterruptedException {
+        table.placeToken(1 , 1);
+        assertEquals(true, table.slotToPlayer[1][1]);
+    }
+    @Test
+    void removeCard_SomeSlotsAreFilled() throws InterruptedException {
+        fillSomeSlots();
+        removeSomeCardsAndAssert();
+    }
+    @Test
+    void placeToken_SomeTokensArePlaced() throws InterruptedException {
+        fillSomeSlots();
+        placeOneTokenAndAssert();
     }
 
     static class MockUserInterface implements UserInterface {

@@ -13,8 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.logging.Logger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,5 +68,35 @@ class PlayerTest {
 
         // check that ui.setScore was called with the player's id and the correct score
         verify(ui).setScore(eq(player.id), eq(expectedScore));
+    }
+
+    @Test
+    void removeTokens() {
+        player.placeToken(0);
+        player.placeToken(1);
+        player.placeToken(2);
+        // The expected number of tokens for later
+        int expectedNumOfTokens = 0;
+
+        // call the method we are testing
+        player.removeTokens();
+
+        // check that the number of tokens was decreased correctly
+        assertEquals(expectedNumOfTokens, player.numOfTokens);
+    }
+    @Test
+    void getTokens() {
+        player.placeToken(0);
+        player.placeToken(1);
+        player.placeToken(2);
+        // initiate the expected array of token slots
+        int[] expectedTokens = {0,1,2};
+
+        // call the method we are testing
+        int[] tokens = player.getTokens();
+
+        // check that the arrays are identical
+        assertArrayEquals(expectedTokens,tokens);
+
     }
 }
